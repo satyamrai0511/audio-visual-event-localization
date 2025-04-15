@@ -9,13 +9,15 @@ from src.models.fusion_model import FusionModel
 def train(model, loader, criterion, optimizer, device):
     model.train()
     total_loss = 0
-    for i, (audio, video) in enumerate(loader):
-        audio, video = audio.to(device), video.to(device)
+    for i, (audio, video, labels) in enumerate(loader):
+        audio, video, labels = audio.to(device), video.to(device), labels.to(device)
 
         logits = model(audio, video)  # (B, T, C)
-        targets = torch.randint(0, logits.shape[-1], (logits.shape[0], logits.shape[1])).to(device)  # Dummy targets
+        T = min(logits.shape[1], labels.shape[1])
+        logits = logits[:, :T, :]
+        labels = labels[:, :T]
 
-        loss = criterion(logits.view(-1, logits.shape[-1]), targets.view(-1))
+        loss = criterion(logits.view(-1, logits.shape[-1]), labels.view(-1))
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -30,7 +32,8 @@ if __name__ == "__main__":
 
     dataset = AudioVisualDataset(
         audio_dir="outputs/features",
-        video_dir="outputs/frames"
+        video_dir="outputs/frames",
+        label_dir="outputs/labels"
     )
     loader = DataLoader(dataset, batch_size=1, shuffle=True)
 
@@ -41,3 +44,4 @@ if __name__ == "__main__":
     print("Starting training...")
     avg_loss = train(model, loader, criterion, optimizer, device)
     print(f"Average Training Loss: {avg_loss:.4f}")
+    torch.save(model.state_dict(), "latest_model.pth")

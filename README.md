@@ -1,15 +1,15 @@
 # 🎯 Audio-Visual Event Localization in Videos
 
-A research-driven project to design an **autoregressive model** that integrates both **audio** and **video** signals for **temporal event localization**. By aligning auditory and visual streams, the goal is to detect and classify meaningful events more precisely.
+A research-driven project to design an **autoregressive model** integrating both **audio** and **video** signals for **temporal event localization**. By aligning auditory and visual streams, the goal is to detect and classify meaningful events more precisely.
 
 ---
 
 ## 📌 Project Goals
 
-- Build an end-to-end multimodal event localization pipeline.
-- Leverage autoregressive modeling to capture temporal dependencies.
-- Fuse audio-visual features using attention or cross-modal interaction.
-- Achieve accurate event classification and localization in videos.
+- End-to-end **multimodal event localization** pipeline
+- Autoregressive modeling of **audio + video** over time
+- Fuse audio-visual features using a **bidirectional LSTM** (audio) and **CNN** (video), then a **GRU** decoder
+- Achieve accurate event classification and localization in real or simulated data
 
 ---
 
@@ -17,18 +17,23 @@ A research-driven project to design an **autoregressive model** that integrates 
 
 ```text
 audio-visual-event-localization/
-├── data/                   # Sample videos, audios, and annotations
-├── models/                 # Autoregressive and fusion model implementations
-├── notebooks/              # EDA and experimentation notebooks
-├── outputs/                # Logs, predictions, evaluation results
+├── data/                    # Sample videos, audios, and optional annotations
+├── models/                  # Model definitions (fusion model, test scripts)
+├── notebooks/               # EDA and experimentation notebooks
+├── outputs/
+│   ├── features/            # Saved audio features (.npy)
+│   ├── frames/              # Extracted video frames
+│   ├── labels/              # Simulated or real label files (.npy)
+│   ├── inference/           # Inference outputs (predictions, logs, etc.)
+│   └── results/             # Any evaluation or result logs
 ├── src/
-│   ├── preprocessing/      # Syncing, trimming, and segmentation logic
-│   ├── feature_extraction/ # Audio & video feature encoders
-│   ├── training/           # Training scripts and dataloaders
-│   └── evaluation/         # Evaluation metrics and benchmarking
-├── requirements.txt        # Python dependencies
-├── README.md               # Project documentation
-└── LICENSE                 # License file
+│   ├── feature_extraction/  # audio_features.py, video_frames.py
+│   ├── models/              # fusion_model.py, test_fusion_model.py
+│   ├── preprocessing/       # sync.py, utils.py, generate_fake_labels.py
+│   └── training/            # dataset.py, train.py, evaluate.py, inference.py
+├── requirements.txt         # Python dependencies
+├── README.md                # Project documentation
+└── LICENSE                  # License file
 ```
 
 ---
@@ -42,8 +47,14 @@ git clone https://github.com/satyamrai0511/audio-visual-event-localization.git
 cd audio-visual-event-localization
 ```
 
-### 2. Create and Activate Virtual Environment
+### 2. Create & Activate Virtual Environment
 
+#### Windows (Git Bash)
+```bash
+python -m venv venv
+source venv/Scripts/activate
+```
+#### Mac/Linux
 ```bash
 python3 -m venv venv
 source venv/bin/activate
@@ -55,54 +66,115 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
----
-
-## 🚀 Usage (Coming Soon)
+### 4. Export PYTHONPATH (if needed)
 
 ```bash
-python src/inference.py --video data/sample_video.mp4 --audio data/sample_audio.wav
-```
-
-Example output:
-
-```
-Detected Event: "Clapping" from 00:15 to 00:19
-Detected Event: "Door Slam" from 01:02 to 01:03
+export PYTHONPATH=.
 ```
 
 ---
 
-## 🧠 Model Architecture (Planned)
+## 🚀 Pipeline Overview
 
-- **Audio Encoder**: Pretrained CNN or transformer-based AST
-- **Video Encoder**: CLIP/ViT or 3D CNN
-- **Fusion Module**: Cross-attention or multimodal transformer
-- **Temporal Model**: Autoregressive decoder for event sequence prediction
+### 1. **Preprocessing**
+- **sync.py**: Checks and prints audio/video durations
+- **utils.py**: Helper functions (time formatting, logging)
+- **generate_fake_labels.py**: Create simulated event labels for demonstration
+
+### 2. **Feature Extraction**
+- **audio_features.py**: Extracts log-mel spectrograms from `.wav` files
+- **video_frames.py**: Extract frames from `.mp4` videos at given FPS
+
+### 3. **Dataset & Model**
+- **dataset.py**: `AudioVisualDataset` merges audio features, frames, and optional labels
+- **fusion_model.py**: Defines the autoregressive fusion model (audio encoder + video encoder + GRU decoder)
+
+### 4. **Training & Evaluation**
+- **train.py**: Trains the model with cross-entropy on simulated or real labels
+- **evaluate.py**: Computes classification metrics (precision, recall, F1) and mAP
+
+### 5. **Inference**
+- **inference.py**: Runs a complete pipeline (extract features, load model, get predictions)
 
 ---
 
-## 📊 Evaluation Metrics
+## 🏋️ Training
 
-- Mean Average Precision (mAP)
-- Localization Accuracy (IoU-based)
-- F1-Score per event type
+1. Place your `.wav` and `.mp4` files in `data/`  
+2. Extract features:
+   ```bash
+   python src/feature_extraction/audio_features.py
+   python src/feature_extraction/video_frames.py
+   ```
+3. (Optional) Generate fake labels:
+   ```bash
+   python src/preprocessing/generate_fake_labels.py
+   ```
+4. Run training:
+   ```bash
+   export PYTHONPATH=.
+   python src/training/train.py
+   ```
+   This will produce `latest_model.pth`
 
 ---
 
-## 🧪 Future Work
+## 📊 Evaluation
 
-- [ ] Real-time streaming support
-- [ ] Web UI for uploading and testing video/audio files
-- [ ] Integration with pretrained multimodal transformers
+```bash
+export PYTHONPATH=.
+python src/training/evaluate.py
+```
+
+- Loads the model checkpoint
+- Computes classification report (precision, recall, F1)
+- Calculates per-class Average Precision (AP) → shown as mAP
+
+---
+
+## 🤖 Inference
+
+```bash
+export PYTHONPATH=.
+python src/training/inference.py
+```
+
+- Takes `data/sample_video_1.mp4` + `data/sample_audio_1.wav`
+- Extracts features
+- Runs them through the model
+- Prints a timeline of predicted classes
+
+---
+
+## 🧩 Example Usage
+
+**Command:**
+```bash
+python src/training/inference.py \
+    --audio_path data/sample_audio_1.wav \
+    --video_path data/sample_video_1.mp4 \
+    --model_path latest_model.pth
+```
+(Output in `outputs/inference`)
+
+---
+
+## 🧠 Future Work
+
+- [ ] Integrate real event timestamps and classes
+- [ ] Implement more complex fusion strategies (transformers, cross-attention)
+- [ ] Add real-time streaming inference
+- [ ] Deploy on Streamlit / FastAPI
 
 ---
 
 ## 🤝 Contributing
 
-Have ideas to improve the model or codebase? Fork the repo, create a feature branch, and open a pull request! Contributions are welcome.
+Contributions are welcome! Feel free to open a PR with suggestions, bug fixes, or new ideas.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the [MIT License](LICENSE).
+
